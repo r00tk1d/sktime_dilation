@@ -4,6 +4,7 @@ __author__ = ["Viktor Kazakov", "Markus Löning", "Aaron Bostrom"]
 __all__ = ["Evaluator"]
 
 import itertools
+from datetime import datetime
 
 import numpy as np
 import pandas as pd
@@ -456,10 +457,10 @@ class Evaluator:
                 # unwrap result object
                 strategy_name = result.strategy_name
                 dataset_name = result.dataset_name
-                fit_estimator_start_time = result.fit_estimator_start_time
-                fit_estimator_end_time = result.fit_estimator_end_time
-                predict_estimator_start_time = result.predict_estimator_start_time
-                predict_estimator_end_time = result.predict_estimator_end_time
+                fit_estimator_start_time = datetime.strptime(result.fit_estimator_start_time, "%Y-%m-%d %H:%M:%S.%f")
+                fit_estimator_end_time = datetime.strptime(result.fit_estimator_end_time, "%Y-%m-%d %H:%M:%S.%f")
+                predict_estimator_start_time = datetime.strptime(result.predict_estimator_start_time, "%Y-%m-%d %H:%M:%S.%f")
+                predict_estimator_end_time = datetime.strptime(result.predict_estimator_end_time, "%Y-%m-%d %H:%M:%S.%f")
                 unwrapped = pd.DataFrame(
                     {
                         "strategy_name": [strategy_name],
