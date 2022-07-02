@@ -406,7 +406,7 @@ class RandomShapeletTransform(BaseTransformer):
             worst_quality,
         )
 
-        return quality, length, position, dim, inst_idx, cls_idx
+        return quality, length, position, dim, inst_idx, cls_idx #TODO , dilation
 
     @staticmethod
     @njit(fastmath=True, cache=True)

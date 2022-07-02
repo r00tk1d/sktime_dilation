@@ -202,12 +202,15 @@ class BOSSEnsemble(BaseClassifier):
         min_max_acc = -1
         for normalise in self._norm_options:
             for win_size in range(self.min_window, max_window + 1, win_inc):
+                # TODO dilation for schleife
+                # merken welche dilation am besten war
                 boss = IndividualBOSS(
                     win_size,
                     self._word_lengths[0],
                     normalise,
                     self._alphabet_size,
                     save_words=True,
+                    # TODO self.dilation_size
                     typed_dict=self.typed_dict,
                     n_jobs=self._threads_to_use,
                     random_state=self.random_state,
@@ -219,6 +222,7 @@ class BOSSEnsemble(BaseClassifier):
 
                 # the used word length may be shorter
                 best_word_len = boss._transformer.word_length
+                # TODO best dilation size (WAHRSCHEINLICH DOCH NICHT HIER sondern im Individual BOSS)
 
                 for n, word_len in enumerate(self._word_lengths):
                     if n > 0:
@@ -601,6 +605,8 @@ class IndividualBOSS(BaseClassifier):
             n_jobs=self._threads_to_use,
         )
 
+        #TODO hier auch?
+
         sfa = self._transformer.fit_transform(X)
         self._transformed_data = sfa[0]
         self._class_vals = y
@@ -620,6 +626,8 @@ class IndividualBOSS(BaseClassifier):
         y : array-like, shape = [n_instances]
             Predicted class labels.
         """
+
+        # TODO X_2.self dilation emthode
         test_bags = self._transformer.transform(X)
         test_bags = test_bags[0]
 
