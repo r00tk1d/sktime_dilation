@@ -128,7 +128,7 @@ class BOSSEnsembleDilation(BaseClassifier):
         max_ensemble_size=500,
         max_win_len_prop=1,
         min_window=10,
-        dilation_size=0,
+        dilation_size=1,
         typed_dict=True,
         save_train_predictions=False,
         n_jobs=1,
@@ -204,9 +204,9 @@ class BOSSEnsembleDilation(BaseClassifier):
         min_max_acc = -1
         for normalise in self._norm_options:
             for win_size in range(self.min_window, max_window + 1, win_inc):
-                for d_size in range(self.dilation_size + 1):
+                for d_size in range(self.dilation_size):
                     # TODO dilation for schleife
-                    # merken welche dilation am besten war
+                    # TODO merken welche dilation am besten war
                     boss = IndividualBOSSDilation(
                         win_size,
                         self._word_lengths[0],
@@ -220,8 +220,8 @@ class BOSSEnsembleDilation(BaseClassifier):
                     )
                     boss.fit(X, y)
 
-                    best_classifier_for_win_size = boss
-                    best_acc_for_win_size = -1
+                    best_classifier_for_win_and_dilation_size = boss
+                    best_acc_for_win_and_dilation_size = -1
 
                     # the used word length may be shorter
                     best_word_len = boss._transformer.word_length
@@ -232,26 +232,26 @@ class BOSSEnsembleDilation(BaseClassifier):
                             boss = boss._shorten_bags(word_len)
 
                         boss._accuracy = self._individual_train_acc(
-                            boss, y, self.n_instances_, best_acc_for_win_size
+                            boss, y, self.n_instances_, best_acc_for_win_and_dilation_size
                         )
 
-                        if boss._accuracy >= best_acc_for_win_size:
-                            best_acc_for_win_size = boss._accuracy
-                            best_classifier_for_win_size = boss
+                        if boss._accuracy >= best_acc_for_win_and_dilation_size:
+                            best_acc_for_win_and_dilation_size = boss._accuracy
+                            best_classifier_for_win_and_dilation_size = boss
                             best_word_len = word_len
 
                     if self._include_in_ensemble(
-                        best_acc_for_win_size,
+                        best_acc_for_win_and_dilation_size,
                         max_acc,
                         min_max_acc,
                         len(self.estimators_),
                     ):
-                        best_classifier_for_win_size._clean()
-                        best_classifier_for_win_size._set_word_len(best_word_len)
-                        self.estimators_.append(best_classifier_for_win_size)
+                        best_classifier_for_win_and_dilation_size._clean()
+                        best_classifier_for_win_and_dilation_size._set_word_len(best_word_len)
+                        self.estimators_.append(best_classifier_for_win_and_dilation_size)
 
-                        if best_acc_for_win_size > max_acc:
-                            max_acc = best_acc_for_win_size
+                        if best_acc_for_win_and_dilation_size > max_acc:
+                            max_acc = best_acc_for_win_and_dilation_size
                             self.estimators_ = list(
                                 compress(
                                     self.estimators_,
@@ -528,7 +528,7 @@ class IndividualBOSSDilation(BaseClassifier):
         norm=False,
         alphabet_size=4,
         save_words=False,
-        dilation_size=0,
+        dilation_size=1,
         typed_dict=True,
         n_jobs=1,
         random_state=None,
@@ -555,9 +555,9 @@ class IndividualBOSSDilation(BaseClassifier):
    
     @staticmethod
     def dilation(X, d):
-        first = X[:, :, 0::d+1]
-        for i in range(1, d+1):
-            second = X[:, :, i::d+1]
+        first = X[:, :, 0::d]
+        for i in range(1, d):
+            second = X[:, :, i::d]
             first = np.concatenate((first, second), axis=2)
         return first
 
@@ -620,6 +620,7 @@ class IndividualBOSSDilation(BaseClassifier):
 
         #TODO hier auch dilation
         X_dilated = self.dilation(X, self.dilation_size)
+        
 
         sfa = self._transformer.fit_transform(X_dilated)
         self._transformed_data = sfa[0]
