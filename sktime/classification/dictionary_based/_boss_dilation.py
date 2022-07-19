@@ -12,6 +12,7 @@ import sys
 from itertools import compress
 
 import numpy as np
+import random
 from joblib import Parallel, delayed
 from numba import njit, types
 from numba.typed.typeddict import Dict
@@ -128,7 +129,8 @@ class BOSSEnsembleDilation(BaseClassifier):
         max_ensemble_size=500,
         max_win_len_prop=1,
         min_window=10,
-        dilation_size=1,
+        max_dilation=1,
+        min_dilation=1,
         typed_dict=True,
         save_train_predictions=False,
         n_jobs=1,
@@ -138,7 +140,8 @@ class BOSSEnsembleDilation(BaseClassifier):
         self.max_ensemble_size = max_ensemble_size
         self.max_win_len_prop = max_win_len_prop
         self.min_window = min_window
-        self.dilation_size = dilation_size
+        self.max_dilation = max_dilation
+        self.min_dilation = min_dilation
 
         self.typed_dict = typed_dict
         self.save_train_predictions = save_train_predictions
@@ -204,7 +207,7 @@ class BOSSEnsembleDilation(BaseClassifier):
         min_max_acc = -1
         for normalise in self._norm_options:
             for win_size in range(self.min_window, max_window + 1, win_inc):
-                for d_size in range(self.dilation_size):
+                for d_size in range(self.min_dilation, self.max_dilation+1):
                     # TODO dilation for schleife
                     # TODO merken welche dilation am besten war
                     boss = IndividualBOSSDilation(
