@@ -131,6 +131,7 @@ class BOSSEnsembleDilation(BaseClassifier):
         min_window=10,
         max_dilation=1,
         min_dilation=1,
+        window_sizes=[7, 9, 11],
         typed_dict=True,
         save_train_predictions=False,
         n_jobs=1,
@@ -142,6 +143,7 @@ class BOSSEnsembleDilation(BaseClassifier):
         self.min_window = min_window
         self.max_dilation = max_dilation
         self.min_dilation = min_dilation
+        self.window_sizes = window_sizes
 
         self.typed_dict = typed_dict
         self.save_train_predictions = save_train_predictions
@@ -153,7 +155,7 @@ class BOSSEnsembleDilation(BaseClassifier):
         self.series_length_ = 0
         self.n_instances_ = 0
 
-        self._word_lengths = [16, 14, 12, 10, 8]
+        self._word_lengths = [4] # diese müssen kleiner als die window size sein
         self._norm_options = [True, False]
         self._alphabet_size = 4
 
@@ -190,7 +192,7 @@ class BOSSEnsembleDilation(BaseClassifier):
         # Window length parameter space dependent on series length
         max_window_searches = self.series_length_ / 4
 
-        max_window = int(self.series_length_ * self.max_win_len_prop)
+        max_window = int((self.series_length_ * self.max_win_len_prop)/8) # max window durch 8 hinzugefügt für kleinere max window
         win_inc = int((max_window - self.min_window) / max_window_searches)
         if win_inc < 1:
             win_inc = 1
@@ -206,8 +208,29 @@ class BOSSEnsembleDilation(BaseClassifier):
         max_acc = -1
         min_max_acc = -1
         for normalise in self._norm_options:
-            for win_size in range(self.min_window, max_window + 1, win_inc):
-                for d_size in range(self.min_dilation, self.max_dilation+1):
+            for win_size in [11]: 
+                for random_dilation in range(200):
+                    # # aus 7, 9 11 random wählen in der dilation for schleife
+                    # normalize ebenfalls random
+                    # rng = check_random_state(window_size)
+                    # rng.choice
+
+                    # ds = np.int32(
+                    #     [
+                    #         2**j
+                    #         for j in np.arange(
+                    #             np.log2(self.min_dilation), np.log2(self.max_dilation) + 1
+                    #         )
+                    #     ]
+                    # )
+
+                    #win_size = random.choice(self.window_sizes)
+
+                    # so wären min_dilation und max_dilation irrelevant:
+                    dilation_x = random.uniform(0, np.log2(self.series_length_/win_size))
+                    d_size = int(np.floor(pow(2, dilation_x)))
+
+
                     # TODO dilation for schleife
                     # TODO merken welche dilation am besten war
                     boss = IndividualBOSSDilation(

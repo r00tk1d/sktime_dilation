@@ -17,6 +17,7 @@ __all__ = [
 ]
 
 import math
+import random
 
 import numpy as np
 from joblib import Parallel, delayed
@@ -37,6 +38,7 @@ class BaseTimeSeriesForestDilation:
         n_estimators=200,
         n_jobs=1,
         random_state=None,
+        dilation_size=5
     ):
         super(BaseTimeSeriesForestDilation, self).__init__(
             base_estimator=self._base_estimator,
@@ -54,9 +56,18 @@ class BaseTimeSeriesForestDilation:
         self.estimators_ = []
         self.intervals_ = []
         self.classes_ = []
+        self.dilation_size = dilation_size
 
         # We need to add is-fitted state when inheriting from scikit-learn
         self._is_fitted = False
+
+    @staticmethod
+    def dilation(X, d):
+        first = X[:, :, 0::d]
+        for i in range(1, d):
+            second = X[:, :, i::d]
+            first = np.concatenate((first, second), axis=2)
+        return first
 
     def _fit(self, X, y):
         """Build a forest of trees from the training set (X, y).
@@ -105,7 +116,7 @@ class BaseTimeSeriesForestDilation:
         return self
 
 
-def _transform(X, intervals):
+def _transform(self, X, intervals):
     """Transform X for given intervals.
 
     Compute the mean, standard deviation and slope for given intervals of input data X.
@@ -122,11 +133,16 @@ def _transform(X, intervals):
     Xt: np.ndarray or pd.DataFrame
      Transformed X, containing the mean, std and slope for each interval
     """
+    # TODO dilation_size random wählen bzw. von außen eingeben über das notebook
+    d_size = self.dilation_size
+    # dilation_x = random.uniform(0, np.log2(self.series_length_/self.min_interval))
+    # d_size = int(np.floor(pow(2, dilation_x)))
     n_instances, _ = X.shape
     n_intervals, _ = intervals.shape
     transformed_x = np.empty(shape=(3 * n_intervals, n_instances), dtype=np.float32)
     for j in range(n_intervals):
-        X_slice = X[:, intervals[j][0] : intervals[j][1]] # X dilation vorher
+        X_dilated = self.dilation(X, d_size)
+        X_slice = X_dilated[:, intervals[j][0] : intervals[j][1]]
         means = np.mean(X_slice, axis=1)
         std_dev = np.std(X_slice, axis=1)
         slope = _slope(X_slice, axis=1)

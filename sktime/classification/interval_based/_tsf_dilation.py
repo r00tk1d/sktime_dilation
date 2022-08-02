@@ -5,7 +5,7 @@ Interval based TSF classifier, extracts basic summary features from random inter
 """
 
 __author__ = ["kkoziara", "luiszugasti", "kanand77"]
-__all__ = ["TimeSeriesForestClassifier"]
+__all__ = ["TimeSeriesForestClassifierDilation"]
 
 import numpy as np
 from joblib import Parallel, delayed
@@ -19,7 +19,7 @@ from sktime.series_as_features.base.estimators.interval_based import (
 from sktime.series_as_features.base.estimators.interval_based._tsf import _transform
 
 
-class TimeSeriesForestClassifier(
+class TimeSeriesForestClassifierDilation(
     BaseTimeSeriesForestDilation, ForestClassifier, BaseClassifier
 ):
     """Time series forest classifier.
@@ -105,7 +105,7 @@ class TimeSeriesForestClassifier(
 
     def _fit(self, X, y):
         BaseTimeSeriesForestDilation._fit(self, X=X, y=y)
- 
+
     def _predict(self, X) -> np.ndarray:
         """Find predictions for all cases in X. Built on top of predict_proba.
 
