@@ -10,7 +10,7 @@ __author__ = [
     "Oleksii Kachaiev",
 ]
 __all__ = [
-    "BaseTimeSeriesForestDilation",
+    "BaseTimeSeriesForest",
     "_transform",
     "_get_intervals",
     "_fit_estimator",
@@ -28,7 +28,7 @@ from sktime.utils.slope_and_trend import _slope
 from sktime.utils.validation import check_n_jobs
 
 
-class BaseTimeSeriesForestDilation:
+class BaseTimeSeriesForest:
     """Base time series forest classifier."""
 
     def __init__(
@@ -38,7 +38,7 @@ class BaseTimeSeriesForestDilation:
         n_jobs=1,
         random_state=None,
     ):
-        super(BaseTimeSeriesForestDilation, self).__init__(
+        super(BaseTimeSeriesForest, self).__init__(
             base_estimator=self._base_estimator,
             n_estimators=n_estimators,
         )
@@ -122,11 +122,11 @@ def _transform(X, intervals):
     Xt: np.ndarray or pd.DataFrame
      Transformed X, containing the mean, std and slope for each interval
     """
-    n_instances, _ = X.shape
-    n_intervals, _ = intervals.shape
+    n_instances, _ = X.shape 
+    n_intervals, _ = intervals.shape 
     transformed_x = np.empty(shape=(3 * n_intervals, n_instances), dtype=np.float32)
     for j in range(n_intervals):
-        X_slice = X[:, intervals[j][0] : intervals[j][1]] # X dilation vorher
+        X_slice = X[:, intervals[j][0] : intervals[j][1]]
         means = np.mean(X_slice, axis=1)
         std_dev = np.std(X_slice, axis=1)
         slope = _slope(X_slice, axis=1)
@@ -146,7 +146,6 @@ def _get_intervals(n_intervals, min_interval, series_length, rng):
         if length < min_interval:
             length = min_interval
         intervals[j][1] = intervals[j][0] + length
-        # dilation zu intervals hinzufügen [j][2]
     return intervals
 
 

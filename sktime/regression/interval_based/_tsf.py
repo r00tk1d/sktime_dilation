@@ -11,12 +11,12 @@ from sklearn.tree import DecisionTreeRegressor
 
 from sktime.regression.base import BaseRegressor
 from sktime.series_as_features.base.estimators.interval_based._tsf import (
-    BaseTimeSeriesForestDilation,
+    BaseTimeSeriesForest,
     _transform,
 )
 
 
-class TimeSeriesForestRegressor(BaseTimeSeriesForestDilation, ForestRegressor, BaseRegressor):
+class TimeSeriesForestRegressor(BaseTimeSeriesForest, ForestRegressor, BaseRegressor):
     """Time series forest regressor.
 
     A time series forest is an ensemble of decision trees built on random intervals.
@@ -82,7 +82,7 @@ class TimeSeriesForestRegressor(BaseTimeSeriesForestDilation, ForestRegressor, B
 
         This is a temporary measure prior to the BaseRegressor refactor.
         """
-        return BaseTimeSeriesForestDilation._fit(self, X, y)
+        return BaseTimeSeriesForest._fit(self, X, y)
 
     def predict(self, X):
         """Override sklearn forest predict with BaseRegressor predict."""

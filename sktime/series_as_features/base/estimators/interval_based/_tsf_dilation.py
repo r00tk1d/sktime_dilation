@@ -38,7 +38,7 @@ class BaseTimeSeriesForestDilation:
         n_estimators=200,
         n_jobs=1,
         random_state=None,
-        dilation_size=5
+        num_of_random_dilations=10 # MOD (wird aber zur Zeit nicht verwendet)
     ):
         super(BaseTimeSeriesForestDilation, self).__init__(
             base_estimator=self._base_estimator,
@@ -56,7 +56,7 @@ class BaseTimeSeriesForestDilation:
         self.estimators_ = []
         self.intervals_ = []
         self.classes_ = []
-        self.dilation_size = dilation_size
+        self.num_of_random_dilations = num_of_random_dilations # MOD (wird aber zur Zeit nicht verwendet)
 
         # We need to add is-fitted state when inheriting from scikit-learn
         self._is_fitted = False
@@ -109,14 +109,14 @@ class BaseTimeSeriesForestDilation:
             delayed(_fit_estimator)(
                 _clone_estimator(self.base_estimator, rng), X, y, self.intervals_[i]
             )
-            for i in range(self.n_estimators)
+            for i in range(self.n_estimators) # n_estimator: Number of estimators to build for the ensemble
         )
 
         self._is_fitted = True
         return self
 
 
-def _transform(self, X, intervals):
+def _transform(X, intervals):
     """Transform X for given intervals.
 
     Compute the mean, standard deviation and slope for given intervals of input data X.
@@ -133,16 +133,19 @@ def _transform(self, X, intervals):
     Xt: np.ndarray or pd.DataFrame
      Transformed X, containing the mean, std and slope for each interval
     """
-    # TODO dilation_size random wählen bzw. von außen eingeben über das notebook
-    d_size = self.dilation_size
-    # dilation_x = random.uniform(0, np.log2(self.series_length_/self.min_interval))
-    # d_size = int(np.floor(pow(2, dilation_x)))
+
+    # MOD hier die dilation_size aus dem interval ausgelesen und angewendet
     n_instances, _ = X.shape
     n_intervals, _ = intervals.shape
     transformed_x = np.empty(shape=(3 * n_intervals, n_instances), dtype=np.float32)
     for j in range(n_intervals):
-        X_dilated = self.dilation(X, d_size)
-        X_slice = X_dilated[:, intervals[j][0] : intervals[j][1]]
+        #X_dilated = self.dilation(X, j[2]) # MOD 
+        d = j[2]
+        X_dilated = X[:, :, 0::d]
+        for i in range(1, d):
+            second = X[:, :, i::d]
+            X_dilated = np.concatenate((X_dilated, second), axis=2)
+        X_slice = X_dilated[:, intervals[j][0] : intervals[j][1]] # MOD
         means = np.mean(X_slice, axis=1)
         std_dev = np.std(X_slice, axis=1)
         slope = _slope(X_slice, axis=1)
@@ -155,14 +158,17 @@ def _transform(self, X, intervals):
 
 def _get_intervals(n_intervals, min_interval, series_length, rng):
     """Generate random intervals for given parameters."""
-    intervals = np.zeros((n_intervals, 2), dtype=int)
+    # MOD hier dilation random gewählt (momentaner Stand verbessert nicht die performance da die anzahl der intervalle bisher nicht reduziert wird)
+    intervals = np.zeros((n_intervals, 3), dtype=int) # MOD 2 -> 3
     for j in range(n_intervals):
-        intervals[j][0] = rng.randint(series_length - min_interval)
-        length = rng.randint(series_length - intervals[j][0] - 1)
+        intervals[j][0] = rng.randint(series_length - min_interval) # hier wird der interval start random bestimmt 
+        length = rng.randint(series_length - intervals[j][0] - 1) #  hier wird die length des intervals bestimmt
         if length < min_interval:
             length = min_interval
-        intervals[j][1] = intervals[j][0] + length
-        # dilation zu intervals hinzufügen [j][2]
+        intervals[j][1] = intervals[j][0] + length # -> interval j geht von interval[j][0] bis interval[j][1]
+        dilation_x = random.uniform(0, np.log2(series_length/length)) # MOD
+        d_size = int(np.floor(pow(2, dilation_x))) # MOD
+        intervals[j][2] = d_size # MOD
     return intervals
 
 

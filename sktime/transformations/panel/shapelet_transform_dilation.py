@@ -325,7 +325,7 @@ class RandomShapeletTransformDilation(BaseTransformer):
                 s[4],
                 self.classes_[s[5]],
                 z_normalise_series(X[s[4], s[3], s[2] : s[2] + s[1]]),
-                s[6] # dilation size
+                s[6] # TODO dilation size (ob 6 hier richtig ist. Wahrscheinlich nicht)
             )
             for class_shapelets in shapelets
             for s in class_shapelets
@@ -425,7 +425,7 @@ class RandomShapeletTransformDilation(BaseTransformer):
             worst_quality,
         )
 
-        return quality, length, position, dim, inst_idx, cls_idx, d_size
+        return quality, length, position, dim, inst_idx, cls_idx, d_size # TODO hier wurde d_size hinzugefügt
 
     @staticmethod
     @njit(fastmath=True, cache=True)
@@ -542,6 +542,8 @@ class RandomShapeletTransformDilation(BaseTransformer):
 @njit(fastmath=True, cache=True)
 def _online_shapelet_distance(series, shapelet, sorted_indicies, position, length):
     # TODO pro series dilation aus den shapelets anwenden
+    # for s in series:
+    #     s_dilated = self.dilation(s, d_size (aus shapelet[]))
     subseq = series[position : position + length]
 
     sum = 0.0

@@ -129,9 +129,8 @@ class BOSSEnsembleDilation(BaseClassifier):
         max_ensemble_size=500,
         max_win_len_prop=1,
         min_window=10,
-        max_dilation=1,
-        min_dilation=1,
         window_sizes=[7, 9, 11],
+        num_of_random_dilations=1000,
         typed_dict=True,
         save_train_predictions=False,
         n_jobs=1,
@@ -141,9 +140,8 @@ class BOSSEnsembleDilation(BaseClassifier):
         self.max_ensemble_size = max_ensemble_size
         self.max_win_len_prop = max_win_len_prop
         self.min_window = min_window
-        self.max_dilation = max_dilation
-        self.min_dilation = min_dilation
         self.window_sizes = window_sizes
+        self.num_of_random_dilations = num_of_random_dilations
 
         self.typed_dict = typed_dict
         self.save_train_predictions = save_train_predictions
@@ -209,11 +207,12 @@ class BOSSEnsembleDilation(BaseClassifier):
         min_max_acc = -1
         for normalise in self._norm_options:
             for win_size in [11]: 
-                for random_dilation in range(200):
-                    # # aus 7, 9 11 random wählen in der dilation for schleife
-                    # normalize ebenfalls random
-                    # rng = check_random_state(window_size)
-                    # rng.choice
+                for random_dilation in range(self.num_of_random_dilations):
+                    # TODO zum reduzieren der Laufzeit di beiden ersten for schleifen entfernen:
+                        # # aus 7, 9 11 random wählen in der dilation for schleife
+                        # normalise ebenfalls random
+                        # rng = check_random_state(window_size)
+                        # rng.choice
 
                     # ds = np.int32(
                     #     [
@@ -230,9 +229,6 @@ class BOSSEnsembleDilation(BaseClassifier):
                     dilation_x = random.uniform(0, np.log2(self.series_length_/win_size))
                     d_size = int(np.floor(pow(2, dilation_x)))
 
-
-                    # TODO dilation for schleife
-                    # TODO merken welche dilation am besten war
                     boss = IndividualBOSSDilation(
                         win_size,
                         self._word_lengths[0],
@@ -251,7 +247,6 @@ class BOSSEnsembleDilation(BaseClassifier):
 
                     # the used word length may be shorter
                     best_word_len = boss._transformer.word_length
-                    # TODO best dilation size (HIER oder im Individual BOSS?)/ersetzen für best win size?
 
                     for n, word_len in enumerate(self._word_lengths):
                         if n > 0:

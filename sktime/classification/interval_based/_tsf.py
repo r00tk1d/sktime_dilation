@@ -14,13 +14,13 @@ from sklearn.tree import DecisionTreeClassifier
 
 from sktime.classification.base import BaseClassifier
 from sktime.series_as_features.base.estimators.interval_based import (
-    BaseTimeSeriesForestDilation,
+    BaseTimeSeriesForest,
 )
 from sktime.series_as_features.base.estimators.interval_based._tsf import _transform
 
 
 class TimeSeriesForestClassifier(
-    BaseTimeSeriesForestDilation, ForestClassifier, BaseClassifier
+    BaseTimeSeriesForest, ForestClassifier, BaseClassifier
 ):
     """Time series forest classifier.
 
@@ -104,7 +104,7 @@ class TimeSeriesForestClassifier(
         return BaseClassifier.predict_proba(self, X=X, **kwargs)
 
     def _fit(self, X, y):
-        BaseTimeSeriesForestDilation._fit(self, X=X, y=y)
+        BaseTimeSeriesForest._fit(self, X=X, y=y)
  
     def _predict(self, X) -> np.ndarray:
         """Find predictions for all cases in X. Built on top of predict_proba.
