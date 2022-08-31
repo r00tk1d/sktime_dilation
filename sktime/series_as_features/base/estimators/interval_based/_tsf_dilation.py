@@ -61,14 +61,6 @@ class BaseTimeSeriesForestDilation:
         # We need to add is-fitted state when inheriting from scikit-learn
         self._is_fitted = False
 
-    @staticmethod
-    def dilation(X, d):
-        first = X[:, :, 0::d]
-        for i in range(1, d):
-            second = X[:, :, i::d]
-            first = np.concatenate((first, second), axis=2)
-        return first
-
     def _fit(self, X, y):
         """Build a forest of trees from the training set (X, y).
 
@@ -94,7 +86,7 @@ class BaseTimeSeriesForestDilation:
         self.n_classes = np.unique(y).shape[0]
 
         self.classes_ = class_distribution(np.asarray(y).reshape(-1, 1))[0][0]
-        self.n_intervals = int(math.sqrt(self.series_length))
+        self.n_intervals = int(math.sqrt(self.series_length)) # MOD n_intervals verkleinern um Laufzeit zu verbessern
         if self.n_intervals == 0:
             self.n_intervals = 1
         if self.series_length < self.min_interval:
@@ -140,11 +132,13 @@ def _transform(X, intervals):
     transformed_x = np.empty(shape=(3 * n_intervals, n_instances), dtype=np.float32)
     for j in range(n_intervals):
         #X_dilated = self.dilation(X, j[2]) # MOD 
-        d = j[2]
-        X_dilated = X[:, :, 0::d]
+        d = intervals[j][2]
+        
+        X_dilated = X[:, 0::d]
         for i in range(1, d):
-            second = X[:, :, i::d]
-            X_dilated = np.concatenate((X_dilated, second), axis=2)
+            second = X[:, i::d]
+            X_dilated = np.concatenate((X_dilated, second), axis=1)
+        
         X_slice = X_dilated[:, intervals[j][0] : intervals[j][1]] # MOD
         means = np.mean(X_slice, axis=1)
         std_dev = np.std(X_slice, axis=1)
@@ -152,6 +146,8 @@ def _transform(X, intervals):
         transformed_x[3 * j] = means
         transformed_x[3 * j + 1] = std_dev
         transformed_x[3 * j + 2] = slope
+
+        #X_dilated = X_dilated[0:0]
 
     return transformed_x.T
 
