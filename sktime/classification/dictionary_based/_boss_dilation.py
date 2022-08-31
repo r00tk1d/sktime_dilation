@@ -135,6 +135,7 @@ class BOSSEnsembleDilation(BaseClassifier):
         save_train_predictions=False,
         n_jobs=1,
         random_state=None,
+        norm_options=[True, False],
     ):
         self.threshold = threshold
         self.max_ensemble_size = max_ensemble_size
@@ -154,7 +155,7 @@ class BOSSEnsembleDilation(BaseClassifier):
         self.n_instances_ = 0
 
         self._word_lengths = [4] # diese müssen kleiner als die window size sein
-        self._norm_options = [True, False]
+        self.norm_options = norm_options
         self._alphabet_size = 4
 
         super(BOSSEnsembleDilation, self).__init__()
@@ -190,7 +191,7 @@ class BOSSEnsembleDilation(BaseClassifier):
         # Window length parameter space dependent on series length
         max_window_searches = self.series_length_ / 4
 
-        max_window = int((self.series_length_ * self.max_win_len_prop)/8) # max window durch 8 hinzugefügt für kleinere max window
+        max_window = int(self.series_length_ * self.max_win_len_prop)
         win_inc = int((max_window - self.min_window) / max_window_searches)
         if win_inc < 1:
             win_inc = 1
@@ -205,90 +206,79 @@ class BOSSEnsembleDilation(BaseClassifier):
             )
         max_acc = -1
         min_max_acc = -1
-        for normalise in self._norm_options:
-            for win_size in [11]: 
-                for random_dilation in range(self.num_of_random_dilations):
-                    # TODO zum reduzieren der Laufzeit di beiden ersten for schleifen entfernen:
-                        # # aus 7, 9 11 random wählen in der dilation for schleife
-                        # normalise ebenfalls random
-                        # rng = check_random_state(window_size)
-                        # rng.choice
 
-                    # ds = np.int32(
-                    #     [
-                    #         2**j
-                    #         for j in np.arange(
-                    #             np.log2(self.min_dilation), np.log2(self.max_dilation) + 1
-                    #         )
-                    #     ]
-                    # )
+        for i in range(self.num_of_random_dilations):
+            rng = check_random_state(self.random_state)
+            win_size = rng.choice(self.window_sizes, 1)[0]
+            normalise = rng.choice(self.norm_options, 1)[0]
 
-                    #win_size = random.choice(self.window_sizes)
+            # ROCKET Implementation:
+            # dilation_x = random.uniform(0, np.log2(self.series_length_/win_size))
+            # d_size = int(np.floor(pow(2, dilation_x)))
 
-                    # so wären min_dilation und max_dilation irrelevant:
-                    dilation_x = random.uniform(0, np.log2(self.series_length_/win_size))
-                    d_size = int(np.floor(pow(2, dilation_x)))
+            d_size = random.randint(self.min_window, max_window/2)
+            print(d_size)
 
-                    boss = IndividualBOSSDilation(
-                        win_size,
-                        self._word_lengths[0],
-                        normalise,
-                        self._alphabet_size,
-                        save_words=True,
-                        dilation_size=d_size,
-                        typed_dict=self.typed_dict,
-                        n_jobs=self._threads_to_use,
-                        random_state=self.random_state,
-                    )
-                    boss.fit(X, y)
+            boss = IndividualBOSSDilation(
+                win_size,
+                self._word_lengths[0],
+                normalise,
+                self._alphabet_size,
+                save_words=True,
+                dilation_size=d_size,
+                typed_dict=self.typed_dict,
+                n_jobs=self._threads_to_use,
+                random_state=self.random_state,
+            )
+            boss.fit(X, y)
 
+            best_classifier_for_win_and_dilation_size = boss
+            best_acc_for_win_and_dilation_size = -1
+
+            # the used word length may be shorter
+            best_word_len = boss._transformer.word_length
+
+            for n, word_len in enumerate(self._word_lengths):
+                if n > 0:
+                    boss = boss._shorten_bags(word_len)
+
+                boss._accuracy = self._individual_train_acc(
+                    boss, y, self.n_instances_, best_acc_for_win_and_dilation_size
+                )
+
+                if boss._accuracy >= best_acc_for_win_and_dilation_size:
+                    best_acc_for_win_and_dilation_size = boss._accuracy
                     best_classifier_for_win_and_dilation_size = boss
-                    best_acc_for_win_and_dilation_size = -1
+                    best_word_len = word_len
 
-                    # the used word length may be shorter
-                    best_word_len = boss._transformer.word_length
+            if self._include_in_ensemble(
+                best_acc_for_win_and_dilation_size,
+                max_acc,
+                min_max_acc,
+                len(self.estimators_),
+            ):
+                best_classifier_for_win_and_dilation_size._clean()
+                best_classifier_for_win_and_dilation_size._set_word_len(best_word_len)
+                self.estimators_.append(best_classifier_for_win_and_dilation_size)
 
-                    for n, word_len in enumerate(self._word_lengths):
-                        if n > 0:
-                            boss = boss._shorten_bags(word_len)
-
-                        boss._accuracy = self._individual_train_acc(
-                            boss, y, self.n_instances_, best_acc_for_win_and_dilation_size
+                if best_acc_for_win_and_dilation_size > max_acc:
+                    max_acc = best_acc_for_win_and_dilation_size
+                    self.estimators_ = list(
+                        compress(
+                            self.estimators_,
+                            [
+                                classifier._accuracy >= max_acc * self.threshold
+                                for c, classifier in enumerate(self.estimators_)
+                            ],
                         )
+                    )
 
-                        if boss._accuracy >= best_acc_for_win_and_dilation_size:
-                            best_acc_for_win_and_dilation_size = boss._accuracy
-                            best_classifier_for_win_and_dilation_size = boss
-                            best_word_len = word_len
+                min_max_acc, min_acc_ind = self._worst_ensemble_acc()
 
-                    if self._include_in_ensemble(
-                        best_acc_for_win_and_dilation_size,
-                        max_acc,
-                        min_max_acc,
-                        len(self.estimators_),
-                    ):
-                        best_classifier_for_win_and_dilation_size._clean()
-                        best_classifier_for_win_and_dilation_size._set_word_len(best_word_len)
-                        self.estimators_.append(best_classifier_for_win_and_dilation_size)
-
-                        if best_acc_for_win_and_dilation_size > max_acc:
-                            max_acc = best_acc_for_win_and_dilation_size
-                            self.estimators_ = list(
-                                compress(
-                                    self.estimators_,
-                                    [
-                                        classifier._accuracy >= max_acc * self.threshold
-                                        for c, classifier in enumerate(self.estimators_)
-                                    ],
-                                )
-                            )
-
+                if len(self.estimators_) > self.max_ensemble_size:
+                    if min_acc_ind > -1:
+                        del self.estimators_[min_acc_ind]
                         min_max_acc, min_acc_ind = self._worst_ensemble_acc()
-
-                        if len(self.estimators_) > self.max_ensemble_size:
-                            if min_acc_ind > -1:
-                                del self.estimators_[min_acc_ind]
-                                min_max_acc, min_acc_ind = self._worst_ensemble_acc()
 
         self.n_estimators_ = len(self.estimators_)
 
