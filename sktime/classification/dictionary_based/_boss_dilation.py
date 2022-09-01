@@ -136,6 +136,7 @@ class BOSSEnsembleDilation(BaseClassifier):
         n_jobs=1,
         random_state=None,
         norm_options=[True, False],
+        word_lengths=[4],
     ):
         self.threshold = threshold
         self.max_ensemble_size = max_ensemble_size
@@ -154,7 +155,7 @@ class BOSSEnsembleDilation(BaseClassifier):
         self.series_length_ = 0
         self.n_instances_ = 0
 
-        self._word_lengths = [4] # diese müssen kleiner als die window size sein
+        self.word_lengths = word_lengths # diese müssen kleiner als die window size sein
         self.norm_options = norm_options
         self._alphabet_size = 4
 
@@ -212,16 +213,19 @@ class BOSSEnsembleDilation(BaseClassifier):
             win_size = rng.choice(self.window_sizes, 1)[0]
             normalise = rng.choice(self.norm_options, 1)[0]
 
-            # ROCKET Implementation:
-            # dilation_x = random.uniform(0, np.log2(self.series_length_/win_size))
-            # d_size = int(np.floor(pow(2, dilation_x)))
 
-            d_size = random.randint(self.min_window, max_window/2)
-            print(d_size)
+            # ROCKET sktime Implementation:
+            # d_size = 2 ** np.random.uniform(
+            #     0, np.log2((self.series_length_ - 1) / (win_size - 1))
+            # )
+            # d_size = np.int32(d_size)
+
+            d_size = random.randint(1, (self.series_length_-1) / 2)
+            # print(d_size)
 
             boss = IndividualBOSSDilation(
                 win_size,
-                self._word_lengths[0],
+                self.word_lengths[0],
                 normalise,
                 self._alphabet_size,
                 save_words=True,
@@ -238,7 +242,7 @@ class BOSSEnsembleDilation(BaseClassifier):
             # the used word length may be shorter
             best_word_len = boss._transformer.word_length
 
-            for n, word_len in enumerate(self._word_lengths):
+            for n, word_len in enumerate(self.word_lengths):
                 if n > 0:
                     boss = boss._shorten_bags(word_len)
 
