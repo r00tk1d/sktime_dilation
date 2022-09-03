@@ -215,12 +215,12 @@ class BOSSEnsembleDilation(BaseClassifier):
 
 
             # ROCKET sktime Implementation:
-            # d_size = 2 ** np.random.uniform(
-            #     0, np.log2((self.series_length_ - 1) / (win_size - 1))
-            # )
-            # d_size = np.int32(d_size)
+            d_size = 2 ** np.random.uniform(
+                0, np.log2((self.series_length_ - 1) / (win_size - 1))
+            )
+            d_size = np.int32(d_size)
 
-            d_size = random.randint(1, (self.series_length_-1) / 2)
+            # d_size = random.randint(1, int((self.series_length_-1) / 2))
             # print(d_size)
 
             boss = IndividualBOSSDilation(
