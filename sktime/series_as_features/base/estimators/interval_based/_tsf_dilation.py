@@ -10,13 +10,14 @@ __author__ = [
     "Oleksii Kachaiev",
 ]
 __all__ = [
-    "BaseTimeSeriesForest",
+    "BaseTimeSeriesForestDilation",
     "_transform",
     "_get_intervals",
     "_fit_estimator",
 ]
 
 import math
+import random
 
 import numpy as np
 from joblib import Parallel, delayed
@@ -28,7 +29,7 @@ from sktime.utils.slope_and_trend import _slope
 from sktime.utils.validation import check_n_jobs
 
 
-class BaseTimeSeriesForest:
+class BaseTimeSeriesForestDilation:
     """Base time series forest classifier."""
 
     def __init__(
@@ -37,8 +38,9 @@ class BaseTimeSeriesForest:
         n_estimators=200,
         n_jobs=1,
         random_state=None,
+        num_of_random_dilations=10, # MOD (wird aber zur Zeit nicht verwendet)
     ):
-        super(BaseTimeSeriesForest, self).__init__(
+        super(BaseTimeSeriesForestDilation, self).__init__(
             base_estimator=self._base_estimator,
             n_estimators=n_estimators,
         )
@@ -54,6 +56,7 @@ class BaseTimeSeriesForest:
         self.estimators_ = []
         self.intervals_ = []
         self.classes_ = []
+        self.num_of_random_dilations = num_of_random_dilations # MOD (wird aber zur Zeit nicht verwendet)
 
         # We need to add is-fitted state when inheriting from scikit-learn
         self._is_fitted = False
@@ -98,7 +101,7 @@ class BaseTimeSeriesForest:
             delayed(_fit_estimator)(
                 _clone_estimator(self.base_estimator, rng), X, y, self.intervals_[i]
             )
-            for i in range(self.n_estimators)
+            for i in range(self.n_estimators) # n_estimator: Number of estimators to build for the ensemble
         )
 
         self._is_fitted = True
@@ -122,11 +125,21 @@ def _transform(X, intervals):
     Xt: np.ndarray or pd.DataFrame
      Transformed X, containing the mean, std and slope for each interval
     """
-    n_instances, _ = X.shape 
-    n_intervals, _ = intervals.shape 
+
+    # MOD hier die dilation_size aus dem interval ausgelesen und angewendet
+    n_instances, _ = X.shape
+    n_intervals, _ = intervals.shape
     transformed_x = np.empty(shape=(3 * n_intervals, n_instances), dtype=np.float32)
     for j in range(n_intervals):
-        X_slice = X[:, intervals[j][0] : intervals[j][1]]
+        #X_dilated = self.dilation(X, j[2]) # MOD 
+        d = intervals[j][2]
+        
+        X_dilated = X[:, 0::d]
+        for i in range(1, d):
+            second = X[:, i::d]
+            X_dilated = np.concatenate((X_dilated, second), axis=1)
+        
+        X_slice = X_dilated[:, intervals[j][0] : intervals[j][1]] # MOD
         means = np.mean(X_slice, axis=1)
         std_dev = np.std(X_slice, axis=1)
         slope = _slope(X_slice, axis=1)
@@ -134,18 +147,26 @@ def _transform(X, intervals):
         transformed_x[3 * j + 1] = std_dev
         transformed_x[3 * j + 2] = slope
 
+        #X_dilated = X_dilated[0:0]
+
     return transformed_x.T
 
 
 def _get_intervals(n_intervals, min_interval, series_length, rng):
     """Generate random intervals for given parameters."""
-    intervals = np.zeros((n_intervals, 2), dtype=int)
+    # MOD hier dilation random gewählt (momentaner Stand verbessert nicht die performance da die anzahl der intervalle bisher nicht reduziert wird)
+    intervals = np.zeros((n_intervals, 3), dtype=int) # MOD 2 -> 3
     for j in range(n_intervals):
-        intervals[j][0] = rng.randint(series_length - min_interval)
-        length = rng.randint(series_length - intervals[j][0] - 1)
+        intervals[j][0] = rng.randint(series_length - min_interval) # hier wird der interval start random bestimmt 
+        length = rng.randint(series_length - intervals[j][0] - 1) #  hier wird die length des intervals bestimmt
         if length < min_interval:
             length = min_interval
-        intervals[j][1] = intervals[j][0] + length
+        intervals[j][1] = intervals[j][0] + length # -> interval j geht von interval[j][0] bis interval[j][1]
+        d_size = 2 ** np.random.uniform(
+            0, np.log2((series_length - 1) / (length - 1))
+        )
+        d_size = np.int32(d_size) # MOD
+        intervals[j][2] = d_size # MOD
     return intervals
 
 

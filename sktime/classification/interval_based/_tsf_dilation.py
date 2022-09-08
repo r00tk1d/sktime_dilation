@@ -5,7 +5,7 @@ Interval based TSF classifier, extracts basic summary features from random inter
 """
 
 __author__ = ["kkoziara", "luiszugasti", "kanand77"]
-__all__ = ["TimeSeriesForestClassifier"]
+__all__ = ["TimeSeriesForestClassifierDilation"]
 
 import numpy as np
 from joblib import Parallel, delayed
@@ -14,13 +14,13 @@ from sklearn.tree import DecisionTreeClassifier
 
 from sktime.classification.base import BaseClassifier
 from sktime.series_as_features.base.estimators.interval_based import (
-    BaseTimeSeriesForest,
+    BaseTimeSeriesForestDilation,
 )
 from sktime.series_as_features.base.estimators.interval_based._tsf import _transform
 
 
-class TimeSeriesForestClassifier(
-    BaseTimeSeriesForest, ForestClassifier, BaseClassifier
+class TimeSeriesForestClassifierDilation(
+    BaseTimeSeriesForestDilation, ForestClassifier, BaseClassifier
 ):
     """Time series forest classifier.
 
@@ -85,21 +85,6 @@ class TimeSeriesForestClassifier(
 
     _base_estimator = DecisionTreeClassifier(criterion="entropy")
 
-    def __init__(
-        self,
-        min_interval=3,
-        n_estimators=200,
-        n_jobs=1,
-        random_state=None,
-    ):
-        super(TimeSeriesForestClassifier, self).__init__(
-            min_interval=min_interval,
-            n_estimators=n_estimators,
-            n_jobs=n_jobs,
-            random_state=random_state,
-        )
-        BaseClassifier.__init__(self)
-
     def fit(self, X, y, **kwargs):
         """Wrap fit to call BaseClassifier.fit.
 
@@ -119,8 +104,8 @@ class TimeSeriesForestClassifier(
         return BaseClassifier.predict_proba(self, X=X, **kwargs)
 
     def _fit(self, X, y):
-        BaseTimeSeriesForest._fit(self, X=X, y=y)
- 
+        BaseTimeSeriesForestDilation._fit(self, X=X, y=y)
+
     def _predict(self, X) -> np.ndarray:
         """Find predictions for all cases in X. Built on top of predict_proba.
 
