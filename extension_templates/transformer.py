@@ -47,6 +47,13 @@ from sktime.transformations.base import BaseTransformer
 
 # todo: add any necessary sktime internal imports here
 
+# todo: if any imports are sktime soft dependencies:
+#  * make sure to fill in the "python_dependencies" tag with the package import name
+#  * add a _check_soft_dependencies warning here, example:
+#
+# from sktime.utils.validation._dependencies import check_soft_dependencies
+# _check_soft_dependencies("soft_dependency_name", severity="warning")
+
 
 class MyTransformer(BaseTransformer):
     """Custom transformer. todo: write docstring.
@@ -120,6 +127,7 @@ class MyTransformer(BaseTransformer):
         # todo: rename to capability:missing_values
         "capability:missing_values:removes": False,
         # is transform result always guaranteed to contain no missing values?
+        "python_version": None,  # PEP 440 python version specifier to limit versions
     }
     # in case of inheritance, concrete class should typically set tags
     #  alternatively, descendants can set tags in __init__
@@ -135,16 +143,19 @@ class MyTransformer(BaseTransformer):
         self.parama = parama
         self.paramb = paramb
         self.paramc = paramc
-        # important: no checking or other logic should happen here
+
+        # todo: change "MyTransformer" to the name of the class
+        super(MyTransformer, self).__init__()
+
+        # todo: optional, parameter checking logic (if applicable) should happen here
+        # if writes derived values to self, should *not* overwrite self.parama etc
+        # instead, write to self._parama, self._newparam (starting with _)
 
         # todo: default estimators should have None arg defaults
         #  and be initialized here
         #  do this only with default estimators, not with parameters
         # if est2 is None:
         #     self.est2 = MyDefaultEstimator()
-
-        # todo: change "MyTransformer" to the name of the class
-        super(MyTransformer, self).__init__()
 
         # todo: if tags of estimator depend on component tags, set these here
         #  only needed if estimator is a composite
