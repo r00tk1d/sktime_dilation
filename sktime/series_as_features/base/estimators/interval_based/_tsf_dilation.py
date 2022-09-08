@@ -38,7 +38,7 @@ class BaseTimeSeriesForestDilation:
         n_estimators=200,
         n_jobs=1,
         random_state=None,
-        num_of_random_dilations=10 # MOD (wird aber zur Zeit nicht verwendet)
+        num_of_random_dilations=10, # MOD (wird aber zur Zeit nicht verwendet)
     ):
         super(BaseTimeSeriesForestDilation, self).__init__(
             base_estimator=self._base_estimator,
@@ -86,7 +86,7 @@ class BaseTimeSeriesForestDilation:
         self.n_classes = np.unique(y).shape[0]
 
         self.classes_ = class_distribution(np.asarray(y).reshape(-1, 1))[0][0]
-        self.n_intervals = int(math.sqrt(self.series_length)) # MOD n_intervals verkleinern um Laufzeit zu verbessern
+        self.n_intervals = int(math.sqrt(self.series_length))
         if self.n_intervals == 0:
             self.n_intervals = 1
         if self.series_length < self.min_interval:
@@ -162,8 +162,10 @@ def _get_intervals(n_intervals, min_interval, series_length, rng):
         if length < min_interval:
             length = min_interval
         intervals[j][1] = intervals[j][0] + length # -> interval j geht von interval[j][0] bis interval[j][1]
-        dilation_x = random.uniform(0, np.log2(series_length/length)) # MOD
-        d_size = int(np.floor(pow(2, dilation_x))) # MOD
+        d_size = 2 ** np.random.uniform(
+            0, np.log2((series_length - 1) / (length - 1))
+        )
+        d_size = np.int32(d_size) # MOD
         intervals[j][2] = d_size # MOD
     return intervals
 
