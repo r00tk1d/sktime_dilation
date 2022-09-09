@@ -231,7 +231,6 @@ class BOSSEnsemble(BaseClassifier):
 
                 # the used word length may be shorter
                 best_word_len = boss._transformer.word_length
-                # TODO best dilation size (WAHRSCHEINLICH DOCH NICHT HIER sondern im Individual BOSS)
 
                 for n, word_len in enumerate(self._word_lengths):
                     if n > 0 and word_len < boss._transformer.word_length:
