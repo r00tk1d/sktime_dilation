@@ -295,7 +295,7 @@ class ContractableBOSSDilation(BaseClassifier):
                     max_feature_count=self.max_feature_count
                 )
                 boss.fit(X_subsample, y_subsample)
-                self.feature_count = boss.feature_count
+                self.feature_count = boss.feature_count * self.num_of_random_dilations
                 boss._clean()
                 boss._subsample = subsample
 

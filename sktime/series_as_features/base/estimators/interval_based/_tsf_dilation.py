@@ -38,7 +38,10 @@ class BaseTimeSeriesForestDilation:
         n_estimators=200,
         n_jobs=1,
         random_state=None,
-        num_of_random_dilations=10, # MOD (wird aber zur Zeit nicht verwendet)
+
+        #num_of_random_dilations=1,
+        n_intervals_prop=1,
+        interval_length_prop=1
     ):
         super(BaseTimeSeriesForestDilation, self).__init__(
             base_estimator=self._base_estimator,
@@ -56,10 +59,13 @@ class BaseTimeSeriesForestDilation:
         self.estimators_ = []
         self.intervals_ = []
         self.classes_ = []
-        self.num_of_random_dilations = num_of_random_dilations # MOD (wird aber zur Zeit nicht verwendet)
 
         # We need to add is-fitted state when inheriting from scikit-learn
         self._is_fitted = False
+
+        #self.num_of_random_dilations = num_of_random_dilations # MOD (wird aber zur Zeit nicht verwendet)
+        self.n_intervals_prop = n_intervals_prop
+        self.interval_length_prop = interval_length_prop
 
     def _fit(self, X, y):
         """Build a forest of trees from the training set (X, y).
@@ -86,14 +92,15 @@ class BaseTimeSeriesForestDilation:
         self.n_classes = np.unique(y).shape[0]
 
         self.classes_ = class_distribution(np.asarray(y).reshape(-1, 1))[0][0]
-        self.n_intervals = int(math.sqrt(self.series_length))
+        self.n_intervals = int(math.sqrt(self.series_length)*self.n_intervals_prop)
+        self.feature_count = 3 * self.n_intervals * self.n_estimators
         if self.n_intervals == 0:
             self.n_intervals = 1
         if self.series_length < self.min_interval:
             self.min_interval = self.series_length
 
         self.intervals_ = [
-            _get_intervals(self.n_intervals, self.min_interval, self.series_length, rng)
+            _get_intervals(self.n_intervals, self.min_interval, self.series_length, rng, self.interval_length_prop)
             for _ in range(self.n_estimators)
         ]
 
@@ -152,13 +159,15 @@ def _transform(X, intervals):
     return transformed_x.T
 
 
-def _get_intervals(n_intervals, min_interval, series_length, rng):
+def _get_intervals(n_intervals, min_interval, series_length, rng, interval_length_prop):
     """Generate random intervals for given parameters."""
     # MOD hier dilation random gewählt (momentaner Stand verbessert nicht die performance da die anzahl der intervalle bisher nicht reduziert wird)
     intervals = np.zeros((n_intervals, 3), dtype=int) # MOD 2 -> 3
     for j in range(n_intervals):
         intervals[j][0] = rng.randint(series_length - min_interval) # hier wird der interval start random bestimmt 
-        length = rng.randint(series_length - intervals[j][0] - 1) #  hier wird die length des intervals bestimmt
+        length = int(rng.randint(series_length - intervals[j][0] - 1)*interval_length_prop) #  hier wird die length des intervals bestimmt
+        #print(length)
+        # TODO Idee wäre hier alternativ wie bei CBOSS random aus einem übergebenen interval_lengths array eine Länge auszuwählen
         if length < min_interval:
             length = min_interval
         intervals[j][1] = intervals[j][0] + length # -> interval j geht von interval[j][0] bis interval[j][1]
@@ -166,6 +175,7 @@ def _get_intervals(n_intervals, min_interval, series_length, rng):
             0, np.log2((series_length - 1) / (length - 1))
         )
         d_size = np.int32(d_size) # MOD
+        print(d_size)
         intervals[j][2] = d_size # MOD
     return intervals
 

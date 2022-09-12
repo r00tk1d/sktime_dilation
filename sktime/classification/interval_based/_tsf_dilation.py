@@ -85,6 +85,29 @@ class TimeSeriesForestClassifierDilation(
 
     _base_estimator = DecisionTreeClassifier(criterion="entropy")
 
+    def __init__(
+        self,
+        min_interval=3,
+        n_estimators=200,
+        n_jobs=1,
+        random_state=None,
+
+        #num_of_random_dilations=1,
+        n_intervals_prop=1,
+        interval_length_prop=1
+    ):
+        super(TimeSeriesForestClassifierDilation, self).__init__(
+            min_interval=min_interval,
+            n_estimators=n_estimators,
+            n_jobs=n_jobs,
+            random_state=random_state,
+            
+            #num_of_random_dilations=num_of_random_dilations,
+            n_intervals_prop=n_intervals_prop,
+            interval_length_prop=interval_length_prop
+        )
+        BaseClassifier.__init__(self)
+
     def fit(self, X, y, **kwargs):
         """Wrap fit to call BaseClassifier.fit.
 
