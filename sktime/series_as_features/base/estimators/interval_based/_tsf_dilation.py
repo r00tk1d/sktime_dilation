@@ -39,7 +39,7 @@ class BaseTimeSeriesForestDilation:
         n_jobs=1,
         random_state=None,
 
-        #num_of_random_dilations=1,
+        num_of_random_dilations=1,
         n_intervals_prop=1,
         interval_length_prop=1
     ):
@@ -63,7 +63,7 @@ class BaseTimeSeriesForestDilation:
         # We need to add is-fitted state when inheriting from scikit-learn
         self._is_fitted = False
 
-        #self.num_of_random_dilations = num_of_random_dilations # MOD (wird aber zur Zeit nicht verwendet)
+        self.num_of_random_dilations = num_of_random_dilations
         self.n_intervals_prop = n_intervals_prop
         self.interval_length_prop = interval_length_prop
 
@@ -93,14 +93,14 @@ class BaseTimeSeriesForestDilation:
 
         self.classes_ = class_distribution(np.asarray(y).reshape(-1, 1))[0][0]
         self.n_intervals = int(math.sqrt(self.series_length)*self.n_intervals_prop)
-        self.feature_count = 3 * self.n_intervals * self.n_estimators
+        self.feature_count = 3 * self.n_intervals * self.n_estimators # * self.num_of_random_dilations
         if self.n_intervals == 0:
             self.n_intervals = 1
         if self.series_length < self.min_interval:
             self.min_interval = self.series_length
 
         self.intervals_ = [
-            _get_intervals(self.n_intervals, self.min_interval, self.series_length, rng, self.interval_length_prop)
+            _get_intervals(self.n_intervals, self.min_interval, self.series_length, rng, self.interval_length_prop, self.num_of_random_dilations)
             for _ in range(self.n_estimators)
         ]
 
@@ -138,7 +138,7 @@ def _transform(X, intervals):
     n_intervals, _ = intervals.shape
     transformed_x = np.empty(shape=(3 * n_intervals, n_instances), dtype=np.float32)
     for j in range(n_intervals):
-        #X_dilated = self.dilation(X, j[2]) # MOD 
+            
         d = intervals[j][2]
         
         X_dilated = X[:, 0::d]
@@ -159,7 +159,7 @@ def _transform(X, intervals):
     return transformed_x.T
 
 
-def _get_intervals(n_intervals, min_interval, series_length, rng, interval_length_prop):
+def _get_intervals(n_intervals, min_interval, series_length, rng, interval_length_prop, num_of_random_dilations):
     """Generate random intervals for given parameters."""
     # MOD hier dilation random gewählt (momentaner Stand verbessert nicht die performance da die anzahl der intervalle bisher nicht reduziert wird)
     intervals = np.zeros((n_intervals, 3), dtype=int) # MOD 2 -> 3
@@ -174,9 +174,9 @@ def _get_intervals(n_intervals, min_interval, series_length, rng, interval_lengt
         d_size = 2 ** np.random.uniform(
             0, np.log2((series_length - 1) / (length - 1))
         )
-        d_size = np.int32(d_size) # MOD
-        print(d_size)
-        intervals[j][2] = d_size # MOD
+        d_size = np.int32(d_size)
+
+        intervals[j][2] = d_size
     return intervals
 
 

@@ -92,7 +92,7 @@ class TimeSeriesForestClassifierDilation(
         n_jobs=1,
         random_state=None,
 
-        #num_of_random_dilations=1,
+        num_of_random_dilations=1,
         n_intervals_prop=1,
         interval_length_prop=1
     ):
@@ -102,7 +102,7 @@ class TimeSeriesForestClassifierDilation(
             n_jobs=n_jobs,
             random_state=random_state,
             
-            #num_of_random_dilations=num_of_random_dilations,
+            num_of_random_dilations=num_of_random_dilations,
             n_intervals_prop=n_intervals_prop,
             interval_length_prop=interval_length_prop
         )
