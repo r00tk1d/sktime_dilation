@@ -222,7 +222,7 @@ class ContractableBOSSDilation(BaseClassifier):
         """
         time_limit = self.time_limit_in_minutes * 60
         self.n_instances_, _, self.series_length_ = X.shape
-        if self.series_length_ > max(self.win_lengths):
+        if self.series_length_ < max(self.win_lengths):
             self.win_lengths = [item for item in self.win_lengths if item < self.series_length_]
 
         self.estimators_ = []
