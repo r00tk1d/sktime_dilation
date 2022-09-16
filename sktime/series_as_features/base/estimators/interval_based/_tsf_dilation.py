@@ -93,7 +93,7 @@ class BaseTimeSeriesForestDilation:
 
         self.classes_ = class_distribution(np.asarray(y).reshape(-1, 1))[0][0]
         self.n_intervals = int(math.sqrt(self.series_length)*self.n_intervals_prop)
-        self.feature_count = 3 * self.n_intervals * self.n_estimators # * self.num_of_random_dilations
+        self.feature_count = 3 * self.n_intervals * self.n_estimators * self.num_of_random_dilations
         if self.n_intervals == 0:
             self.n_intervals = 1
         if self.series_length < self.min_interval:
@@ -135,9 +135,9 @@ def _transform(X, intervals):
 
     # MOD hier die dilation_size aus dem interval ausgelesen und angewendet
     n_instances, _ = X.shape
-    n_intervals, _ = intervals.shape
-    transformed_x = np.empty(shape=(3 * n_intervals, n_instances), dtype=np.float32)
-    for j in range(n_intervals):
+    n_intervals_with_dilation, _ = intervals.shape
+    transformed_x = np.empty(shape=(3 * n_intervals_with_dilation, n_instances), dtype=np.float32)
+    for j in range(n_intervals_with_dilation):
             
         d = intervals[j][2]
         
@@ -162,21 +162,21 @@ def _transform(X, intervals):
 def _get_intervals(n_intervals, min_interval, series_length, rng, interval_length_prop, num_of_random_dilations):
     """Generate random intervals for given parameters."""
     # MOD hier dilation random gewählt (momentaner Stand verbessert nicht die performance da die anzahl der intervalle bisher nicht reduziert wird)
-    intervals = np.zeros((n_intervals, 3), dtype=int) # MOD 2 -> 3
+    intervals = np.zeros((n_intervals*num_of_random_dilations, 3), dtype=int) # MOD 2 -> 3
     for j in range(n_intervals):
-        intervals[j][0] = rng.randint(series_length - min_interval) # hier wird der interval start random bestimmt 
+        start = rng.randint(series_length - min_interval) # hier wird der interval start random bestimmt 
         length = int(rng.randint(series_length - intervals[j][0] - 1)*interval_length_prop) #  hier wird die length des intervals bestimmt
-        #print(length)
-        # TODO Idee wäre hier alternativ wie bei CBOSS random aus einem übergebenen interval_lengths array eine Länge auszuwählen
         if length < min_interval:
             length = min_interval
-        intervals[j][1] = intervals[j][0] + length # -> interval j geht von interval[j][0] bis interval[j][1]
-        d_size = 2 ** np.random.uniform(
-            0, np.log2((series_length - 1) / (length - 1))
-        )
-        d_size = np.int32(d_size)
+        for k in range(num_of_random_dilations):
+            intervals[j*num_of_random_dilations+k][0] = start
+            intervals[j*num_of_random_dilations+k][1] = start + length # -> interval j geht von interval[j][0] bis interval[j][1]
+            d_size = 2 ** np.random.uniform(
+                0, np.log2((series_length - 1) / (length - 1))
+            )
+            d_size = np.int32(d_size)
 
-        intervals[j][2] = d_size
+            intervals[j*num_of_random_dilations+k][2] = d_size
     return intervals
 
 
