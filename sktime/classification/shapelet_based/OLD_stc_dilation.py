@@ -6,19 +6,19 @@ transform then builds (by default) a rotation forest classifier on the output.
 """
 
 __author__ = ["TonyBagnall", "MatthewMiddlehurst"]
-__all__ = ["ShapeletTransformClassifier"]
+__all__ = ["ShapeletTransformClassifierDilationOLD"]
 
 import numpy as np
 from sklearn.model_selection import cross_val_predict
 
+from sktime._contrib.vector_classifiers._rotation_forest import RotationForest
 from sktime.base._base import _clone_estimator
 from sktime.classification.base import BaseClassifier
-from sktime.classification.sklearn import RotationForest
 from sktime.transformations.panel.shapelet_transform_dilation import RandomShapeletTransformDilation
 from sktime.utils.validation.panel import check_X_y
 
 
-class ShapeletTransformClassifierDilation(BaseClassifier):
+class ShapeletTransformClassifierDilationOLD(BaseClassifier):
     """Shapelet Transform Classifier.
 
     Implementation of the binary shapelet transform classifier along the lines
@@ -101,7 +101,7 @@ class ShapeletTransformClassifierDilation(BaseClassifier):
     Examples
     --------
     >>> from sktime.classification.shapelet_based import ShapeletTransformClassifier
-    >>> from sktime.classification.sklearn import RotationForest
+    >>> from sktime._contrib.vector_classifiers._rotation_forest import RotationForest
     >>> from sktime.datasets import load_unit_test
     >>> X_train, y_train = load_unit_test(split="train", return_X_y=True)
     >>> X_test, y_test = load_unit_test(split="test", return_X_y=True)
@@ -137,6 +137,8 @@ class ShapeletTransformClassifierDilation(BaseClassifier):
         n_jobs=1,
         batch_size=100,
         random_state=None,
+        #max_dilation=1,
+        #min_dilation=1,
     ):
         self.n_shapelet_samples = n_shapelet_samples
         self.max_shapelets = max_shapelets
@@ -162,7 +164,10 @@ class ShapeletTransformClassifierDilation(BaseClassifier):
         self._transform_limit_in_minutes = 0
         self._classifier_limit_in_minutes = 0
 
-        super(ShapeletTransformClassifierDilation, self).__init__()
+        #self.max_dilation = max_dilation
+        #self.min_dilation = min_dilation
+
+        super(ShapeletTransformClassifierDilationOLD, self).__init__()
 
     def _fit(self, X, y):
         """Fit STC to training data.
@@ -350,5 +355,4 @@ class ShapeletTransformClassifierDilation(BaseClassifier):
                 "n_shapelet_samples": 10,
                 "max_shapelets": 3,
                 "batch_size": 5,
-                "save_transformed_data": True,
             }
