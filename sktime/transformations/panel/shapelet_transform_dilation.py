@@ -1304,7 +1304,9 @@ class RandomShapeletTransformDilation(BaseTransformer):
             )
 
             output[i] = dists
-
+        
+        # TODO self.feature_count = len(output)
+    
         return pd.DataFrame(output)
 
     @classmethod
@@ -1493,10 +1495,10 @@ class RandomShapeletTransformDilation(BaseTransformer):
 @njit(fastmath=True, cache=True)
 def _online_shapelet_distance(series, shapelet, sorted_indicies, position, length, d_size):
 
-    dilated_series = series[:, :, 0::d_size]
+    dilated_series = series[0::d_size]
     for i in range(1, d_size):
-        second = series[:, :, i::d_size]
-        dilated_series = np.concatenate((dilated_series, second), axis=2)
+        second = series[i::d_size]
+        dilated_series = np.concatenate((dilated_series, second))
     subseq = dilated_series[position : position + length]
 
     sum = 0.0
