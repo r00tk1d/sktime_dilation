@@ -94,7 +94,8 @@ class TimeSeriesForestClassifierDilation(
 
         num_of_random_dilations=1,
         n_intervals_prop=1,
-        interval_length_prop=1
+        interval_length_prop=1,
+        interval_lengths=[7,9,11],
     ):
         super(TimeSeriesForestClassifierDilation, self).__init__(
             min_interval=min_interval,
@@ -104,7 +105,8 @@ class TimeSeriesForestClassifierDilation(
             
             num_of_random_dilations=num_of_random_dilations,
             n_intervals_prop=n_intervals_prop,
-            interval_length_prop=interval_length_prop
+            interval_length_prop=interval_length_prop,
+            interval_lengths=interval_lengths,
         )
         BaseClassifier.__init__(self)
 

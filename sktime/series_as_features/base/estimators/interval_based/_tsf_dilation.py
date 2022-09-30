@@ -41,7 +41,8 @@ class BaseTimeSeriesForestDilation:
 
         num_of_random_dilations=1,
         n_intervals_prop=1,
-        interval_length_prop=1
+        interval_length_prop=1,
+        interval_lengths=[7,9,11],
     ):
         super(BaseTimeSeriesForestDilation, self).__init__(
             base_estimator=self._base_estimator,
@@ -66,6 +67,7 @@ class BaseTimeSeriesForestDilation:
         self.num_of_random_dilations = num_of_random_dilations
         self.n_intervals_prop = n_intervals_prop
         self.interval_length_prop = interval_length_prop
+        self.interval_lengths = interval_lengths
 
     def _fit(self, X, y):
         """Build a forest of trees from the training set (X, y).
@@ -100,7 +102,7 @@ class BaseTimeSeriesForestDilation:
             self.min_interval = self.series_length
 
         self.intervals_ = [
-            _get_intervals(self.n_intervals, self.min_interval, self.series_length, rng, self.interval_length_prop, self.num_of_random_dilations)
+            _get_intervals(self.n_intervals, self.min_interval, self.series_length, rng, self.interval_length_prop, self.interval_lengths, self.num_of_random_dilations)
             for _ in range(self.n_estimators)
         ]
 
@@ -159,13 +161,15 @@ def _transform(X, intervals):
     return transformed_x.T
 
 
-def _get_intervals(n_intervals, min_interval, series_length, rng, interval_length_prop, num_of_random_dilations):
+def _get_intervals(n_intervals, min_interval, series_length, rng, interval_length_prop, interval_lengths, num_of_random_dilations):
     """Generate random intervals for given parameters."""
     # MOD hier dilation random gewählt (momentaner Stand verbessert nicht die performance da die anzahl der intervalle bisher nicht reduziert wird)
     intervals = np.zeros((n_intervals*num_of_random_dilations, 3), dtype=int) # MOD 2 -> 3
     for j in range(n_intervals):
         start = rng.randint(series_length - min_interval) # hier wird der interval start random bestimmt 
-        length = int(rng.randint(series_length - intervals[j][0] - 1)*interval_length_prop) #  hier wird die length des intervals bestimmt
+        length = int(rng.randint(series_length - start - 1)*interval_length_prop) #  hier wird die length des intervals bestimmt mit prop
+        #length = random.choice([x for x in interval_lengths if x < series_length - intervals[j][0] - 1]) # length aus length_size array
+        rng.random(interval_lengths)
         if length < min_interval:
             length = min_interval
         for k in range(num_of_random_dilations):
