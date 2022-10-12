@@ -41,6 +41,7 @@ class BaseTimeSeriesForestDilation:
 
         num_of_random_dilations=1,
         n_intervals_prop=1,
+        n_intervals=0,
         interval_length_prop=1,
         interval_lengths=[3,7,9,11],
     ):
@@ -56,7 +57,7 @@ class BaseTimeSeriesForestDilation:
         # The following set in method fit
         self.n_classes = 0
         self.series_length = 0
-        self.n_intervals = 0
+        self.n_intervals = n_intervals
         self.estimators_ = []
         self.intervals_ = []
         self.classes_ = []
@@ -94,10 +95,11 @@ class BaseTimeSeriesForestDilation:
         self.n_classes = np.unique(y).shape[0]
 
         self.classes_ = class_distribution(np.asarray(y).reshape(-1, 1))[0][0]
-        self.n_intervals = int(math.sqrt(self.series_length)*self.n_intervals_prop)
-        self.feature_count = 3 * self.n_intervals * self.n_estimators * self.num_of_random_dilations
+        if self.n_intervals == 0:
+            self.n_intervals = int(math.sqrt(self.series_length)*self.n_intervals_prop)
         if self.n_intervals == 0:
             self.n_intervals = 1
+        self.feature_count = 3 * self.n_intervals * self.num_of_random_dilations
         if self.series_length < self.min_interval:
             self.min_interval = self.series_length
 
