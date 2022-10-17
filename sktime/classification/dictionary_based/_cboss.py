@@ -176,6 +176,9 @@ class ContractableBOSS(BaseClassifier):
         self.n_estimators_ = 0
         self.series_length_ = 0
         self.n_instances_ = 0
+        self.feature_count = 0
+        self.feature_count_fit = 0
+        self.feature_count_per_param_comb = 0
 
         self._weight_sum = 0
         self._word_lengths = [16, 14, 12, 10, 8]
@@ -237,6 +240,8 @@ class ContractableBOSS(BaseClassifier):
         lowest_acc = 1
         lowest_acc_idx = 0
 
+        used_parameter_samples = 0
+
         rng = check_random_state(self.random_state)
 
         if time_limit > 0:
@@ -256,6 +261,7 @@ class ContractableBOSS(BaseClassifier):
             parameters = possible_parameters.pop(
                 rng.randint(0, len(possible_parameters))
             )
+            used_parameter_samples += 1
 
             subsample = rng.choice(
                 self.n_instances_, size=subsample_size, replace=False
@@ -274,6 +280,8 @@ class ContractableBOSS(BaseClassifier):
             boss.fit(X_subsample, y_subsample)
             boss._clean()
             boss._subsample = subsample
+
+            self.feature_count_fit += boss.feature_count
 
             boss._accuracy = self._individual_train_acc(
                 boss,
@@ -304,6 +312,11 @@ class ContractableBOSS(BaseClassifier):
 
         self.n_estimators_ = len(self.estimators_)
         self._weight_sum = np.sum(self.weights_)
+
+        for estimator in self.estimators_:
+            self.feature_count += estimator.feature_count
+
+        self.feature_count_per_param_comb = self.feature_count_fit/used_parameter_samples
 
         return self
 

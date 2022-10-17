@@ -158,7 +158,7 @@ class ContractableBOSSDilation(BaseClassifier):
         random_state=None,
 
         # IndividualBossDilationParameter
-        num_of_random_dilations = 50,
+        dilations_per_param_comb = 50,
         norm_options = [True, False],
         win_lengths = [9, 11, 15, 20, 25, 30],
 
@@ -185,13 +185,16 @@ class ContractableBOSSDilation(BaseClassifier):
         self.n_estimators_ = 0
         self.series_length_ = 0
         self.n_instances_ = 0
+        self.feature_count = 0
+        self.feature_count_fit = 0
+        self.feature_count_per_param_comb = 0
 
         self._weight_sum = 0
         self.word_lengths = word_lengths
         self.norm_options = norm_options
         self.alphabet_size = alphabet_size
         self.win_lengths = win_lengths
-        self.num_of_random_dilations = num_of_random_dilations
+        self.dilations_per_param_comb = dilations_per_param_comb
         self.max_feature_count = max_feature_count
 
         super(ContractableBOSSDilation, self).__init__()
@@ -222,6 +225,7 @@ class ContractableBOSSDilation(BaseClassifier):
         """
         time_limit = self.time_limit_in_minutes * 60
         self.n_instances_, _, self.series_length_ = X.shape
+        # filter win_lengths that are longer than the series length
         if self.series_length_ < max(self.win_lengths):
             self.win_lengths = [item for item in self.win_lengths if item < self.series_length_]
 
@@ -245,11 +249,14 @@ class ContractableBOSSDilation(BaseClassifier):
             )
         possible_parameters = self._unique_parameters(max_window, win_inc)
         num_classifiers = 0
+        num_param_combs_tried = 0
         start_time = time.time()
         train_time = 0
         subsample_size = int(self.n_instances_ * 0.7)
         lowest_acc = 1
         lowest_acc_idx = 0
+
+        used_parameter_samples = 0
 
         rng = check_random_state(self.random_state)
 
@@ -265,11 +272,12 @@ class ContractableBOSSDilation(BaseClassifier):
                 train_time < time_limit
                 and num_classifiers < contract_max_n_parameter_samples
             )
-            or num_classifiers < n_parameter_samples
+            or num_param_combs_tried < n_parameter_samples
         ) and len(possible_parameters) > 0:
             parameters = possible_parameters.pop(
                 rng.randint(0, len(possible_parameters))
             )
+            used_parameter_samples += 1
 
             subsample = rng.choice(
                 self.n_instances_, size=subsample_size, replace=False
@@ -277,7 +285,7 @@ class ContractableBOSSDilation(BaseClassifier):
             X_subsample = X[subsample]
             y_subsample = y[subsample]
 
-            for d in range(self.num_of_random_dilations):
+            for d in range(self.dilations_per_param_comb):
                 # ROCKET sktime Implementation:
                 d_size = 2 ** np.random.uniform(
                     0, np.log2((self.series_length_ - 1) / (parameters[0] - 1))
@@ -295,9 +303,10 @@ class ContractableBOSSDilation(BaseClassifier):
                     max_feature_count=self.max_feature_count
                 )
                 boss.fit(X_subsample, y_subsample)
-                self.feature_count = boss.feature_count * self.num_of_random_dilations
                 boss._clean()
                 boss._subsample = subsample
+
+                self.feature_count_fit += boss.feature_count
 
                 boss._accuracy = self._individual_train_acc(
                     boss,
@@ -325,9 +334,15 @@ class ContractableBOSSDilation(BaseClassifier):
 
                     num_classifiers += 1
                 train_time = time.time() - start_time
+            num_param_combs_tried += 1
 
         self.n_estimators_ = len(self.estimators_)
         self._weight_sum = np.sum(self.weights_)
+
+        for estimator in self.estimators_:
+            self.feature_count += estimator.feature_count
+
+        self.feature_count_per_param_comb = self.feature_count_fit/used_parameter_samples
 
         return self
 
@@ -391,8 +406,8 @@ class ContractableBOSSDilation(BaseClassifier):
         possible_parameters = [
             [win_size, word_len, normalise]
             for n, normalise in enumerate(self.norm_options)
-            #for h, win_size in enumerate(self.win_lengths) # wenn die win_lengths vorgegeben werden, dies benutzen
-            for win_size in range(self.min_window, max_window + 1, win_inc) # wenn die win_size vom Ursprungsalgorithmus nicht veraendert werden soll, das hier nutzen
+            for h, win_size in enumerate(self.win_lengths) # wenn die win_lengths vorgegeben werden, dies benutzen
+            #for win_size in range(self.min_window, max_window + 1, win_inc) # wenn die win_size vom Ursprungsalgorithmus nicht veraendert werden soll, das hier nutzen
             for g, word_len in enumerate(self.word_lengths)
         ]
 

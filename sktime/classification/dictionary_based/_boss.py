@@ -596,6 +596,7 @@ class IndividualBOSS(BaseClassifier):
         )
 
         self._transformed_data = self._transformer.fit_transform(X, y)
+        self.feature_count = self._transformed_data.shape[1]
         self._class_vals = y
 
         return self
