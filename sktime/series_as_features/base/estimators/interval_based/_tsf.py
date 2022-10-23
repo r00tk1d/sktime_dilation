@@ -17,6 +17,7 @@ __all__ = [
 ]
 
 import math
+import time
 
 import numpy as np
 from joblib import Parallel, delayed
@@ -47,6 +48,10 @@ class BaseTimeSeriesForest:
         self.n_estimators = n_estimators
         self.min_interval = min_interval
         self.n_jobs = n_jobs
+
+        self.get_intervals_time = 0
+        self.transform_time = 0
+        self.fit_randomforest_time = 0
         # The following set in method fit
         self.n_classes = 0
         self.series_length = 0
@@ -86,20 +91,25 @@ class BaseTimeSeriesForest:
         self.n_intervals = int(math.sqrt(self.series_length))
         if self.n_intervals == 0:
             self.n_intervals = 1
+        self.feature_count = 3 * self.n_intervals
         if self.series_length < self.min_interval:
             self.min_interval = self.series_length
-
+        self.get_intervals_time = time.process_time()
         self.intervals_ = [
             _get_intervals(self.n_intervals, self.min_interval, self.series_length, rng)
             for _ in range(self.n_estimators)
         ]
+        self.get_intervals_time = np.round(time.process_time() - self.get_intervals_time, 5)
 
-        self.estimators_ = Parallel(n_jobs=n_jobs)(
+        estimators = Parallel(n_jobs=n_jobs)(
             delayed(_fit_estimator)(
                 _clone_estimator(self.base_estimator, rng), X, y, self.intervals_[i]
             )
             for i in range(self.n_estimators)
         )
+        self.estimators_, transform_time, fit_randomforest_time = zip(*estimators)
+        self.transform_time = sum(transform_time)
+        self.fit_randomforest_time = sum(fit_randomforest_time)
 
         self._is_fitted = True
         return self
@@ -151,5 +161,10 @@ def _get_intervals(n_intervals, min_interval, series_length, rng):
 
 def _fit_estimator(estimator, X, y, intervals):
     """Fit an estimator on input data (X, y)."""
+    transform_time = time.process_time()
     transformed_x = _transform(X, intervals)
-    return estimator.fit(transformed_x, y)
+    transform_time = np.round(time.process_time() - transform_time, 5)
+    fit_randomforest_time = time.process_time()
+    x = estimator.fit(transformed_x, y)
+    fit_randomforest_time = np.round(time.process_time() - fit_randomforest_time, 5)
+    return x, transform_time, fit_randomforest_time
