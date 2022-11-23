@@ -9,3 +9,6 @@ from sktime.series_as_features.base.estimators.interval_based._tsf import (
 from sktime.series_as_features.base.estimators.interval_based._tsf_dilation import (
     BaseTimeSeriesForestDilation,
 )
+from sktime.series_as_features.base.estimators.interval_based._tsf_dilation_real import (
+    BaseTimeSeriesForestDilationReal,
+)

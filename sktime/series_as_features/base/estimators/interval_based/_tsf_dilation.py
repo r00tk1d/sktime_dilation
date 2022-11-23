@@ -179,8 +179,8 @@ def _get_intervals(n_intervals, min_interval, series_length, rng, interval_lengt
     intervals = np.zeros((n_intervals*dilations_per_interval, 3), dtype=int) # MOD 2 -> 3
     for j in range(n_intervals):
         start = rng.randint(series_length - min_interval) # hier wird der interval start random bestimmt 
-        length = int(rng.randint(series_length - start - 1)*interval_length_prop) #  hier wird die length des intervals bestimmt mit prop
-        #length = random.choice([x for x in interval_lengths if x <= series_length - start - 1]) # length aus length_size array
+        #length = int(rng.randint(series_length - start - 1)*interval_length_prop) #  hier wird die length des intervals bestimmt mit prop
+        length = random.choice([x for x in interval_lengths if x <= series_length - start - 1]) # length aus length_size array
         if length < min_interval:
             length = min_interval
         for k in range(dilations_per_interval):

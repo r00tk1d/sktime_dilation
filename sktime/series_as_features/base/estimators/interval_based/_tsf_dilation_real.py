@@ -10,13 +10,14 @@ __author__ = [
     "Oleksii Kachaiev",
 ]
 __all__ = [
-    "BaseTimeSeriesForest",
+    "BaseTimeSeriesForestDilationReal",
     "_transform",
     "_get_intervals",
     "_fit_estimator",
 ]
 
 import math
+import random
 import time
 
 import numpy as np
@@ -29,7 +30,7 @@ from sktime.utils.slope_and_trend import _slope
 from sktime.utils.validation import check_n_jobs
 
 
-class BaseTimeSeriesForest:
+class BaseTimeSeriesForestDilationReal:
     """Base time series forest classifier."""
 
     def __init__(
@@ -38,8 +39,14 @@ class BaseTimeSeriesForest:
         n_estimators=200,
         n_jobs=1,
         random_state=None,
+
+        max_dilation_size=1,
+        n_intervals_prop=1,
+        n_intervals=0,
+        interval_length_prop=1,
+        interval_lengths=[3,7,9,11],
     ):
-        super(BaseTimeSeriesForest, self).__init__(
+        super(BaseTimeSeriesForestDilationReal, self).__init__(
             base_estimator=self._base_estimator,
             n_estimators=n_estimators,
         )
@@ -55,13 +62,19 @@ class BaseTimeSeriesForest:
         # The following set in method fit
         self.n_classes = 0
         self.series_length = 0
-        self.n_intervals = 0
+        self.n_intervals = n_intervals
         self.estimators_ = []
         self.intervals_ = []
         self.classes_ = []
 
         # We need to add is-fitted state when inheriting from scikit-learn
         self._is_fitted = False
+        
+        self.dilations_per_interval = max_dilation_size
+        self.n_intervals_prop = n_intervals_prop
+        self.interval_length_prop = interval_length_prop
+        self.interval_lengths = interval_lengths
+        self.max_dilation_size = max_dilation_size
 
     def _fit(self, X, y):
         """Build a forest of trees from the training set (X, y).
@@ -88,7 +101,8 @@ class BaseTimeSeriesForest:
         self.n_classes = np.unique(y).shape[0]
 
         self.classes_ = class_distribution(np.asarray(y).reshape(-1, 1))[0][0]
-        self.n_intervals = int(math.sqrt(self.series_length))
+        if self.n_intervals == 0:
+            self.n_intervals = int(math.sqrt(self.series_length)*self.n_intervals_prop)
         if self.n_intervals == 0:
             self.n_intervals = 1
         self.feature_count = 3 * self.n_intervals*self.n_estimators
@@ -96,7 +110,7 @@ class BaseTimeSeriesForest:
             self.min_interval = self.series_length
         self.get_intervals_time = time.process_time()
         self.intervals_ = [
-            _get_intervals(self.n_intervals, self.min_interval, self.series_length, rng)
+            _get_intervals(self.n_intervals, self.min_interval, self.series_length, rng, self.interval_length_prop, self.interval_lengths, self.max_dilation_size)
             for _ in range(self.n_estimators)
         ]
         self.get_intervals_time = np.round(time.process_time() - self.get_intervals_time, 5)
@@ -135,8 +149,13 @@ def _transform(X, intervals):
     n_instances, _ = X.shape 
     n_intervals, _ = intervals.shape 
     transformed_x = np.empty(shape=(3 * n_intervals, n_instances), dtype=np.float32)
+    d = intervals[0][2]
+    X_dilated = X[:, 0::d]
+    for i in range(1, d):
+        second = X[:, i::d]
+        X_dilated = np.concatenate((X_dilated, second), axis=1)
     for j in range(n_intervals):
-        X_slice = X[:, intervals[j][0] : intervals[j][1]]
+        X_slice = X_dilated[:, intervals[j][0] : intervals[j][1]]
         means = np.mean(X_slice, axis=1)
         std_dev = np.std(X_slice, axis=1)
         slope = _slope(X_slice, axis=1)
@@ -147,15 +166,19 @@ def _transform(X, intervals):
     return transformed_x.T
 
 
-def _get_intervals(n_intervals, min_interval, series_length, rng):
+def _get_intervals(n_intervals, min_interval, series_length, rng, interval_length_prop, interval_lengths,max_dilation_size):
     """Generate random intervals for given parameters."""
-    intervals = np.zeros((n_intervals, 2), dtype=int)
+    intervals = np.zeros((n_intervals, 3), dtype=int)
+    d_size = np.random.uniform(1, max_dilation_size)
+    d_size = np.int32(d_size)
     for j in range(n_intervals):
         intervals[j][0] = rng.randint(series_length - min_interval)
-        length = rng.randint(series_length - intervals[j][0] - 1)
+        #length = int(rng.randint(series_length - intervals[j][0] - 1)*interval_length_prop) #hier wird die length des intervals bestimmt mit prop
+        length = random.choice([x for x in interval_lengths if x <= series_length - intervals[j][0] - 1]) # length aus length_size array
         if length < min_interval:
             length = min_interval
         intervals[j][1] = intervals[j][0] + length
+        intervals[j][2] = d_size
     return intervals
 
 

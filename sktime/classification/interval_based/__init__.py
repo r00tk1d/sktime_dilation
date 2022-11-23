@@ -7,6 +7,7 @@ __all__ = [
     "CanonicalIntervalForest",
     "DrCIF",
     "TimeSeriesForestClassifierDilation",
+    "TimeSeriesForestClassifierDilationReal",
 ]
 
 from sktime.classification.interval_based._cif import CanonicalIntervalForest
@@ -15,3 +16,4 @@ from sktime.classification.interval_based._rise import RandomIntervalSpectralEns
 from sktime.classification.interval_based._stsf import SupervisedTimeSeriesForest
 from sktime.classification.interval_based._tsf import TimeSeriesForestClassifier
 from sktime.classification.interval_based._tsf_dilation import TimeSeriesForestClassifierDilation
+from sktime.classification.interval_based._tsf_dilation_real import TimeSeriesForestClassifierDilationReal
