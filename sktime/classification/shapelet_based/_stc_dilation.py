@@ -129,6 +129,8 @@ class ShapeletTransformClassifierDilation(BaseClassifier):
         n_shapelet_samples=10000,
         max_shapelets=None,
         max_shapelet_length=None,
+        #shapelet_length_prop=1.0, #MOD
+        shapelet_lengths=[7,9,11], #MOD
         estimator=None,
         transform_limit_in_minutes=0,
         time_limit_in_minutes=0,
@@ -141,6 +143,8 @@ class ShapeletTransformClassifierDilation(BaseClassifier):
         self.n_shapelet_samples = n_shapelet_samples
         self.max_shapelets = max_shapelets
         self.max_shapelet_length = max_shapelet_length
+        self.shapelet_lengths = shapelet_lengths #MOD
+        # self.shapelet_length_prop = shapelet_length_prop #MOD
         self.estimator = estimator
 
         self.transform_limit_in_minutes = transform_limit_in_minutes
@@ -199,6 +203,8 @@ class ShapeletTransformClassifierDilation(BaseClassifier):
             n_shapelet_samples=self.n_shapelet_samples,
             max_shapelets=self.max_shapelets,
             max_shapelet_length=self.max_shapelet_length,
+            # shapelet_length_prop=self.shapelet_length_prop, #MOD
+            shapelet_
             time_limit_in_minutes=self._transform_limit_in_minutes,
             contract_max_n_shapelet_samples=self.contract_max_n_shapelet_samples,
             n_jobs=self.n_jobs,
@@ -223,6 +229,8 @@ class ShapeletTransformClassifierDilation(BaseClassifier):
             self._estimator.time_limit_in_minutes = self._classifier_limit_in_minutes
 
         X_t = self._transformer.fit_transform(X, y).to_numpy()
+
+        self.feature_count = self._transformer.feature_count
 
         if self.save_transformed_data:
             self.transformed_data_ = X_t

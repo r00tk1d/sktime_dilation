@@ -1081,6 +1081,8 @@ class RandomShapeletTransformDilation(BaseTransformer):
         max_shapelets=None,
         min_shapelet_length=3,
         max_shapelet_length=None,
+        #shapelet_length_prop=1.0,
+        shapelet_lengths=[7,9,11],
         remove_self_similar=True,
         time_limit_in_minutes=0.0,
         contract_max_n_shapelet_samples=np.inf,
@@ -1092,6 +1094,8 @@ class RandomShapeletTransformDilation(BaseTransformer):
         self.max_shapelets = max_shapelets
         self.min_shapelet_length = min_shapelet_length
         self.max_shapelet_length = max_shapelet_length
+        #self.shapelet_length_prop = shapelet_length_prop
+        self.shapelet_lengths = shapelet_lengths
         self.remove_self_similar = remove_self_similar
 
         self.time_limit_in_minutes = time_limit_in_minutes
@@ -1108,6 +1112,7 @@ class RandomShapeletTransformDilation(BaseTransformer):
         self.series_length = 0
         self.classes_ = []
         self.shapelets = []
+        self.feature_count = 0
 
         self._n_shapelet_samples = n_shapelet_samples
         self._max_shapelets = max_shapelets
@@ -1161,8 +1166,10 @@ class RandomShapeletTransformDilation(BaseTransformer):
         if self.max_shapelets is None:
             self._max_shapelets = min(10 * self.n_instances, 1000)
 
-        if self.max_shapelet_length is None:
-            self._max_shapelet_length = self.series_length # TODO * self.shapelet_length_prop um die shapelet length zu reduzieren
+        if (self.max_shapelet_length is None) or (self.max_shapelet_length > self.series_length):
+            self._max_shapelet_length = self.series_length
+
+        self.feature_count = min(self._n_shapelet_samples, self._max_shapelets)
 
         time_limit = self.time_limit_in_minutes * 60
         start_time = time.time()
@@ -1347,7 +1354,10 @@ class RandomShapeletTransformDilation(BaseTransformer):
         length = (
             rng.randint(0, self._max_shapelet_length - self.min_shapelet_length)
             + self.min_shapelet_length
-        ) # TODO hier die length reduzieren?
+        )
+        # hier length aus self.shapelet_lengths random chosen
+        # length = ()
+
 
         d_size = 2 ** np.random.uniform(
             0, np.log2((self.series_length - 1) / (length - 1))
