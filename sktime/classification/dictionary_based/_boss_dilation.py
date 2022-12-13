@@ -568,12 +568,14 @@ class IndividualBOSSDilation(BaseClassifier):
         super(IndividualBOSSDilation, self).__init__()
 
     @staticmethod
+    
     def dilation(X, d):
-        first = X[:, :, 0::d]
+        result = X[:, :, 0::d]
         for i in range(1, d):
-            second = X[:, :, i::d]
-            first = np.concatenate((first, second), axis=2)
-        return first
+            next = X[:, :, i::d]
+            result = np.concatenate((result, next), axis=2)
+        return result
+
 
     def _fit(self, X, y):
         """Fit a single boss classifier on n_instances cases (X,y).

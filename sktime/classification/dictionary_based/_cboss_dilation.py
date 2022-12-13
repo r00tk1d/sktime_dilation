@@ -407,8 +407,8 @@ class ContractableBOSSDilation(BaseClassifier):
         possible_parameters = [
             [win_size, word_len, normalise]
             for n, normalise in enumerate(self.norm_options)
-            for h, win_size in enumerate(self.win_lengths) # wenn die win_lengths vorgegeben werden, dies benutzen
-            #for win_size in range(self.min_window, max_window + 1, win_inc) # wenn die win_size vom Ursprungsalgorithmus nicht veraendert werden soll, das hier nutzen
+            #for h, win_size in enumerate(self.win_lengths) # wenn die win_lengths vorgegeben werden, dies benutzen
+            for win_size in range(self.min_window, max_window + 1, win_inc) # wenn die win_size vom Ursprungsalgorithmus nicht veraendert werden soll, das hier nutzen
             for g, word_len in enumerate(self.word_lengths)
         ]
 
